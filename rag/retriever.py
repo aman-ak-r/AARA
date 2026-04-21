@@ -1,4 +1,6 @@
-from langchain_community.tools import DuckDuckGoSearchRun
+import json
+import subprocess
+import sys
 
 def retrieve_from_vector_store(vector_store, query, top_k=5):
     """Retrieves top_k relevant chunks from FAISS vector store."""
@@ -6,11 +8,57 @@ def retrieve_from_vector_store(vector_store, query, top_k=5):
     return [doc.page_content for doc in docs]
 
 def retrieve_from_web(query):
-    """Retrieves web snippets using DuckDuckGo."""
-    search = DuckDuckGoSearchRun()
+    """Retrieves web snippets using DuckDuckGo.
+
+    The call is isolated in a subprocess because web-search dependencies can
+    trigger native TLS/keychain panics on some macOS setups. Subprocess
+    isolation ensures the main app survives and can continue with local context.
+    """
+    helper = (
+        "import json\n"
+        "import sys\n"
+        "query = json.loads(sys.stdin.read() or '{}').get('query', '').strip()\n"
+        "if not query:\n"
+        "    print(json.dumps({'result': 'Web search failed: empty query'}))\n"
+        "    raise SystemExit(0)\n"
+        "try:\n"
+        "    from ddgs import DDGS\n"
+        "except Exception as import_err:\n"
+        "    print(json.dumps({'error': f'Could not import DDGS client: {import_err}'}))\n"
+        "    raise SystemExit(2)\n"
+        "snippets = []\n"
+        "try:\n"
+        "    with DDGS() as ddgs:\n"
+        "        for item in ddgs.text(query, max_results=5):\n"
+        "            if not isinstance(item, dict):\n"
+        "                continue\n"
+        "            title = (item.get('title') or '').strip()\n"
+        "            body = (item.get('body') or '').strip()\n"
+        "            href = (item.get('href') or '').strip()\n"
+        "            line = ' | '.join(part for part in (title, body, href) if part)\n"
+        "            if line:\n"
+        "                snippets.append(line)\n"
+        "except Exception as search_err:\n"
+        "    print(json.dumps({'error': f'DuckDuckGo search failed: {search_err}'}))\n"
+        "    raise SystemExit(3)\n"
+        "result = '\\n'.join(snippets).strip() or 'Web search failed: empty response'\n"
+        "print(json.dumps({'result': result}))\n"
+    )
     try:
-        results = search.run(query)
-        return results
+        process = subprocess.run(
+            [sys.executable, "-c", helper],
+            input=json.dumps({"query": query}),
+            text=True,
+            capture_output=True,
+            timeout=15,
+            check=False,
+        )
+        if process.returncode != 0:
+            details = process.stdout.strip() or process.stderr.strip() or "subprocess error"
+            return f"Web search failed: {details}"
+
+        payload = json.loads(process.stdout.strip() or "{}")
+        return payload.get("result", "Web search failed: empty response")
     except Exception as e:
         return f"Web search failed: {e}"
 

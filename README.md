@@ -35,7 +35,7 @@ query_node → search_node → validation_node → summary_node → report_node
    ```
 3. Run the Streamlit app:
    ```bash
-   streamlit run app.py
+   python -m streamlit run app.py
    ```
 
 ## Future Improvements

@@ -7,7 +7,7 @@ try:
     import sentence_transformers
     import PyPDF2
     import reportlab
-    import duckduckgo_search
+    import ddgs
     import torch
     import transformers
     print("All imports successful!")
