@@ -10,7 +10,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 class HashEmbeddings(Embeddings):
     """Lightweight deterministic fallback embedding model."""
 
-    def __init__(self, dimension: int = 256):
+    def __init__(self, dimension: int = 384):
         self.dimension = dimension
 
     def _tokenize(self, text: str):

@@ -4,7 +4,8 @@ langchain-community
 langchain-huggingface
 langchain-text-splitters
 langgraph
-faiss-cpu
+pinecone
+python-dotenv
 sentence-transformers
 PyPDF2
 reportlab

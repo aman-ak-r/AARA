@@ -2,10 +2,37 @@ import json
 import subprocess
 import sys
 
-def retrieve_from_vector_store(vector_store, query, top_k=5):
-    """Retrieves top_k relevant chunks from FAISS vector store."""
-    docs = vector_store.similarity_search(query, k=top_k)
-    return [doc.page_content for doc in docs]
+from rag.embeddings import get_embeddings_model
+
+
+def retrieve_from_vector_store(vector_store, query, top_k=10):
+    """Retrieves top_k relevant chunks from the Pinecone index.
+
+    Args:
+        vector_store: A Pinecone Index object.
+        query: The user's search query string.
+        top_k: Number of top results to return (default raised to 10 for richer context).
+
+    Returns:
+        A list of (text, score) tuples from the most relevant chunks.
+    """
+    embeddings_model = get_embeddings_model()
+    query_vector = embeddings_model.embed_query(query)
+
+    results = vector_store.query(
+        vector=query_vector,
+        top_k=top_k,
+        include_metadata=True,
+    )
+
+    chunks = []
+    for match in results.get("matches", []):
+        text = match.get("metadata", {}).get("text", "")
+        score = match.get("score", 0.0)
+        if text:
+            chunks.append({"text": text, "score": round(score, 4)})
+    return chunks
+
 
 def retrieve_from_web(query):
     """Retrieves web snippets using DuckDuckGo.
@@ -62,15 +89,16 @@ def retrieve_from_web(query):
     except Exception as e:
         return f"Web search failed: {e}"
 
+
 def get_combined_context(vector_store, query):
-    """Merges local PDF document chunks and DuckDuckGo search results."""
+    """Merges local PDF document chunks from Pinecone and DuckDuckGo search results."""
     local_chunks = []
-    if vector_store:
+    if vector_store is not None:
         local_chunks = retrieve_from_vector_store(vector_store, query)
-    
+
     web_snippet = retrieve_from_web(query)
-    
+
     return {
         "local_chunks": local_chunks,
-        "web_snippet": web_snippet
+        "web_snippet": web_snippet,
     }

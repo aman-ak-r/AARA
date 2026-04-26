@@ -1,11 +1,14 @@
 import time
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from agents.graph import run_research_agent
-from rag.vector_store import create_vector_store
+from rag.vector_store import create_vector_store, delete_all_vectors
 from utils.exporters import export_to_pdf
 from utils.pdf_parser import extract_text_from_pdfs, get_text_chunks
+
+load_dotenv()
 
 st.set_page_config(page_title="Agentic AI Research Assistant", page_icon="🤖", layout="wide")
 
@@ -14,8 +17,11 @@ st.sidebar.markdown(
     """
     **Upload Research Papers (PDF)**
     This dashboard implements a LangGraph-driven RAG architecture.
-    It combines FAISS similarity search + DuckDuckGo to generate
+    It combines **Pinecone** vector search + DuckDuckGo to generate
     structured reports via a HuggingFace generative model.
+
+    Uploaded documents are stored persistently in Pinecone so they
+    remain available across sessions.
     """
 )
 
@@ -31,19 +37,24 @@ if "generation_warning" not in st.session_state:
 
 if st.sidebar.button("2) Process Knowledge Base"):
     if uploaded_files:
-        with st.spinner("Extracting text and building FAISS indices..."):
+        with st.spinner("Extracting text and uploading embeddings to Pinecone..."):
             raw_text = extract_text_from_pdfs(uploaded_files)
             if raw_text.strip():
                 chunks = get_text_chunks(raw_text)
                 st.session_state.vector_store = create_vector_store(chunks)
-                st.sidebar.success("Vector Store Initialized! ✅")
+                st.sidebar.success(f"✅ {len(chunks)} chunks upserted to Pinecone!")
             else:
                 st.sidebar.error("Failed to extract sensible text from these PDFs.")
     else:
         st.sidebar.warning("Upload a PDF file first.")
 
+if st.sidebar.button("🗑️ Clear Knowledge Base"):
+    with st.spinner("Deleting all vectors from Pinecone..."):
+        st.session_state.vector_store = delete_all_vectors()
+        st.sidebar.success("Pinecone index cleared! ✅")
+
 st.title("Agentic AI Research Assistant")
-st.markdown("Using RAG, local embeddings, DuckDuckGo, and a Flan-T5-based summarization pipeline.")
+st.markdown("Using RAG, Pinecone vector DB, DuckDuckGo, and a Flan-T5-based summarization pipeline.")
 
 query = st.text_input(
     "Enter your complex research question:",

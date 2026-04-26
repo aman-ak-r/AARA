@@ -4,7 +4,14 @@ def validation_node(state):
     web_snippet = state.get("web_snippet", "")
 
     # Remove duplicate local document chunks while preserving retrieval order.
-    unique_chunks = list(dict.fromkeys(local_chunks))
+    # Chunks can be dicts ({"text": ..., "score": ...}) or plain strings.
+    seen = set()
+    unique_chunks = []
+    for chunk in local_chunks:
+        text = chunk["text"] if isinstance(chunk, dict) else chunk
+        if text not in seen:
+            seen.add(text)
+            unique_chunks.append(chunk)
 
     # Validate web snippet strength
     if len(web_snippet) < 20 or "Web search failed" in web_snippet:
