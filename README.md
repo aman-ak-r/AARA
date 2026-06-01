@@ -3,7 +3,7 @@
 This is an AI-powered research assistant utilizing Retrieval-Augmented Generation (RAG) and LangGraph to answer research queries by combining local PDF knowledge and DuckDuckGo web search.
 
 ## Features
-- **Upload Multiple PDFs**: Parses and chunks PDFs to a FAISS vector store.
+- **Upload Multiple PDFs**: Parses and chunks PDFs to a pinecone vector store.
 - **RAG Pipeline**: Semantic search across your documents with `all-MiniLM-L6-v2`.
 - **LangGraph Agent Workflow**: Implements a structured workflow using `google/flan-t5-base`.
 - **Hybrid Search**: Combines web context from DuckDuckGo with local context.
