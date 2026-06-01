@@ -20,7 +20,7 @@ query_node → search_node → validation_node → summary_node → report_node
 ## Folder Structure
 - `app.py`: Main Streamlit app.
 - `agents/`: Contains LangGraph node definitions and overall workflow.
-- `rag/`: Manages embeddings, FAISS vector store, and document retrieving.
+- `rag/`: Manages embeddings, pinecone vector store, and document retrieving.
 - `utils/`: Helpers for PDF extraction and generating PDF exports.
 
 ## Local Setup
